@@ -9,7 +9,7 @@ public class Contact implements Comparable<Contact> {
         this.identifier = id;
     }
 
-    private Contact() {
+    public Contact() {
     }
 
     String identifier;

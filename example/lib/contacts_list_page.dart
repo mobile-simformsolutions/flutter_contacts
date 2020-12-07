@@ -21,22 +21,21 @@ class _ContactListPageState extends State<ContactListPage> {
 
   Future<void> refreshContacts() async {
     // Load without thumbnails initially.
-    var contacts = (await ContactsService.getContacts(
-            withThumbnails: false, iOSLocalizedLabels: iOSLocalizedLabels))
+    var contacts = (await ContactsService.getContacts(query: "TEST"))
         .toList();
 //      var contacts = (await ContactsService.getContactsForPhone("8554964652"))
 //          .toList();
     setState(() {
       _contacts = contacts;
     });
-
+/*
     // Lazy load thumbnails after rendering initial contacts.
     for (final contact in contacts) {
       ContactsService.getAvatar(contact).then((avatar) {
         if (avatar == null) return; // Don't redraw if no change.
         setState(() => contact.avatar = avatar);
       });
-    }
+    }*/
   }
 
   void updateContact() async {
@@ -105,7 +104,14 @@ class _ContactListPageState extends State<ContactListPage> {
                     leading: (c.avatar != null && c.avatar.length > 0)
                         ? CircleAvatar(backgroundImage: MemoryImage(c.avatar))
                         : CircleAvatar(child: Text(c.initials())),
-                    title: Text(c.displayName ?? ""),
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.displayName ?? ""),
+                        Text(c.emails.toList()[0].label ?? 'No Data'),
+                        Text('${c.emails.toList()[0].value}\n'),
+                      ],
+                    ),
                   );
                 },
               )

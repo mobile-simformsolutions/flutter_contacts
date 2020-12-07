@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -423,13 +424,13 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
     protected ArrayList<HashMap> doInBackground(Object... params) {
       ArrayList<Contact> contacts;
       switch (callMethod) {
-        case "openDeviceContactPicker": contacts = getContactsFrom(getCursor(null, (String) params[0])); break;
-        case "getContacts": contacts = getContactsFrom(getCursor((String) params[0], null)); break;
+//        case "openDeviceContactPicker": contacts = getContactsFrom(getCursor(null, (String) params[0])); break;
+        case "getContacts": contacts = getCursor((String) params[0], null); break;
         case "getContactsForPhone": contacts = getContactsFrom(getCursorForPhone(((String) params[0]))); break;
         default: return null;
       }
 
-      if (withThumbnails) {
+      /*if (withThumbnails) {
         for(Contact c : contacts){
           final byte[] avatar = loadContactPhotoHighRes(
                   c.identifier, photoHighResolution, contentResolver);
@@ -444,7 +445,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
 //          else
 //              setAvatarDataForContactIfAvailable(c);
         }
-      }
+      }*/
 
       if (orderByGivenName)
       {
@@ -476,11 +477,45 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
   }
 
 
-  private Cursor getCursor(String query, String rawContactId) {
-    String selection = "(" + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR "
-            + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR "
-            + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.Data.MIMETYPE + "=? OR "
-            + ContactsContract.Data.MIMETYPE + "=? OR " + ContactsContract.RawContacts.ACCOUNT_TYPE + "=?" + ")";
+  private ArrayList<Contact> getCursor(String query, String rawContactId) {
+    ArrayList<Contact> contactList = new ArrayList<Contact>();
+
+    String[] PROJECTION = new String[] { ContactsContract.RawContacts._ID,
+            ContactsContract.Contacts.DISPLAY_NAME,
+            ContactsContract.Contacts.PHOTO_ID,
+            ContactsContract.CommonDataKinds.Email.DATA,
+            ContactsContract.CommonDataKinds.Email.TYPE,
+            ContactsContract.CommonDataKinds.Photo.CONTACT_ID };
+    String order = "CASE WHEN "
+            + ContactsContract.Contacts.DISPLAY_NAME
+            + " NOT LIKE '%@%' THEN 1 ELSE 2 END, "
+            + ContactsContract.Contacts.DISPLAY_NAME
+            + ", "
+            + ContactsContract.CommonDataKinds.Email.DATA
+            + " COLLATE NOCASE";
+    String filter = ContactsContract.CommonDataKinds.Email.DATA + " NOT LIKE ''";
+    Cursor cur = contentResolver.query(ContactsContract.CommonDataKinds.Email.CONTENT_URI, PROJECTION, filter, null, order);
+    if (cur.moveToFirst()) {
+      do {
+        Contact contact = new Contact();
+        contact.displayName = cur.getString(1);
+        String emlAddr = cur.getString(3);
+        int type = cur.getInt(4);
+        if(type == 0) {
+          type = 3;
+        }
+        String label = Item.getEmailLabel(type, cur);
+        contact.emails.add(new Item(label,emlAddr));
+        contactList.add(contact);
+        Log.v("Name", cur.getString(1));
+        Log.v("Type", Integer.toString(type));
+        Log.v("Label", label);
+
+      } while (cur.moveToNext());
+    }
+    return contactList;
+    /*cur.close();
+    String selection = "(" + ContactsContract.Data.MIMETYPE + "="+ Email.CONTENT_ITEM_TYPE +" OR " + ContactsContract.RawContacts.ACCOUNT_TYPE + "=?" + ")";
     ArrayList<String> selectionArgs = new ArrayList<>(Arrays.asList(CommonDataKinds.Note.CONTENT_ITEM_TYPE, Email.CONTENT_ITEM_TYPE,
             Phone.CONTENT_ITEM_TYPE, StructuredName.CONTENT_ITEM_TYPE, Organization.CONTENT_ITEM_TYPE,
             StructuredPostal.CONTENT_ITEM_TYPE, CommonDataKinds.Event.CONTENT_ITEM_TYPE, ContactsContract.RawContacts.ACCOUNT_TYPE));
@@ -493,7 +528,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
       selectionArgs.add(rawContactId);
       selection += " AND " + ContactsContract.Data.CONTACT_ID + " =?";
     }
-    return contentResolver.query(ContactsContract.Data.CONTENT_URI, PROJECTION, selection, selectionArgs.toArray(new String[selectionArgs.size()]), null);
+    return contentResolver.query(ContactsContract.Data.CONTENT_URI, PROJECTION, selection, selectionArgs.toArray(new String[selectionArgs.size()]), null);*/
   }
 
   private Cursor getCursorForPhone(String phone) {
