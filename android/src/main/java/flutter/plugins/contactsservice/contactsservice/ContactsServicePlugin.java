@@ -430,7 +430,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
         default: return null;
       }
 
-      /*if (withThumbnails) {
+      if (withThumbnails) {
         for(Contact c : contacts){
           final byte[] avatar = loadContactPhotoHighRes(
                   c.identifier, photoHighResolution, contentResolver);
@@ -440,12 +440,12 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
             // To stay backwards-compatible, return an empty byte array rather than `null`.
             c.avatar = new byte[0];
           }
-//          if ((Boolean) params[3])
-//              loadContactPhotoHighRes(c.identifier, (Boolean) params[3]);
-//          else
-//              setAvatarDataForContactIfAvailable(c);
+            if ((Boolean) params[3])
+                loadContactPhotoHighRes(c.identifier, (Boolean) params[3], contentResolver);
+            else
+                setAvatarDataForContactIfAvailable(c);
         }
-      }*/
+      }
 
       if (orderByGivenName)
       {
@@ -485,6 +485,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
             ContactsContract.Contacts.PHOTO_ID,
             ContactsContract.CommonDataKinds.Email.DATA,
             ContactsContract.CommonDataKinds.Email.TYPE,
+            ContactsContract.Data.CONTACT_ID,
             ContactsContract.CommonDataKinds.Photo.CONTACT_ID };
     String order = "CASE WHEN "
             + ContactsContract.Contacts.DISPLAY_NAME
@@ -506,6 +507,7 @@ public class ContactsServicePlugin implements MethodCallHandler, FlutterPlugin, 
         }
         String label = Item.getEmailLabel(type, cur);
         contact.emails.add(new Item(label,emlAddr));
+        contact.identifier = cur.getString(5);
         contactList.add(contact);
         Log.v("Name", cur.getString(1));
         Log.v("Type", Integer.toString(type));
